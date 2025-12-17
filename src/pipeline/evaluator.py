@@ -98,8 +98,8 @@ class Evaluator:
         return {'precision': precision_global, 'recall' : recall_global, 'f1-score' :f1_global}
 
 
-evaluator = Evaluator()
+# evaluator = Evaluator()
 
-print(evaluator.calculate_metrics(targets, targets))
-print(evaluator.calculate_metrics(targets, predictions_1_1))
-print(evaluator.calculate_metrics(targets, predictions_1_2))
+# print(evaluator.calculate_metrics(targets, targets))
+# print(evaluator.calculate_metrics(targets, predictions_1_1))
+# print(evaluator.calculate_metrics(targets, predictions_1_2))

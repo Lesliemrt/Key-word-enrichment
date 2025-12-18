@@ -12,11 +12,11 @@ def verif(names_list) :
     # the gbif link, and two other lists for variant spellings and
     # false occurences
 
-
     # On itère sur toute la liste de noms et on vérifie le status de
     # la recherche pour décider dans quelle liste ajouter le nom
     for name in names_list : 
         res = species.name_backbone(scientificName=name)
+        print("Testing" + name)
         if res["diagnostics"]["matchType"] == "EXACT" :
             correct_occurences[res["usage"]["canonicalName"]] = f"GBIF taxonomy page - https://www.gbif.org/species/{res["usage"]["key"]}"
         elif res["diagnostics"]["matchType"] == "VARIANT" :
@@ -27,17 +27,17 @@ def verif(names_list) :
     return(correct_occurences, misspelled_ocrurrences, wrong_occurences)
 
 
-
 def result_csv(csv_path) :
     csv = pd.read_csv(csv_path)
-    csv["Accepted Names"] = "couldn't find"
+    csv["Accepted Names"] = ""
     csv["Misspelled Names"] = ""
     csv["Unrecognised Names"] = ""
     length = len(csv)
     for i in range(length) : 
-        if csv.at(i, "Taxon") != "couldn't find" : 
-            a, b, c = verif(csv.at(i, "Taxon"))
-            csv.at[i, "Accepted Names"] = a
-            csv.ati[i, "Misspelled Names"] = b
-            csv.ati[i, "Unrecognised Names"] = c
+        if csv.at[i, "Taxon"] != "" :
+            strings = [x.strip() for x in csv.at[i, "Taxon"].strip("[]").split(",")] 
+            a, b, c = verif(strings)
+            csv.at[i, "Accepted Names"] = str(a)
+            csv.at[i, "Misspelled Names"] = str(b)
+            csv.at[i, "Unrecognised Names"] = str(c)
     csv.to_csv("result_checked.csv")

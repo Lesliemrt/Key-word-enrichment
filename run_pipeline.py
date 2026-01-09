@@ -21,13 +21,14 @@ def clean_ground_truth(gt_text):
     return set([s.strip() for s in str(gt_text).split(',') 
                 if s.strip() and len(s.split()) >= 2])
 
-def print_report(precision, recall, f1, avg_f1, total_extracted, total_correct):
+def print_report(precision, recall, f1, avg_f1, total_extracted, total_correct, duration):
     print(f"\n--- REPORT ---")
     print(f"Precision: {precision:.3f} | Recall: {recall:.3f} | F1-Score: {f1:.3f}")
     print(f"Average F1: {avg_f1:.3f}")
     print(f"Total extractions: {total_extracted}")
     print(f"Correct extractions: {total_correct}")
     print(f"False positives: {total_extracted - total_correct}")
+    print(f"Duration : ", duration)
 
 def run_pipeline(model):
 
@@ -41,6 +42,8 @@ def run_pipeline(model):
     length = len(csv)
     print(f"Loaded {length} records")
     print('---- Start extraction ----')
+    start_time = time.time()
+
     total_tp = 0
     total_fp = 0
     total_fn = 0
@@ -83,8 +86,11 @@ def run_pipeline(model):
     f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
     print(csv['F1'])
     avg_f1 = sum(csv.at[i, "F1"] for i in range(length)) / length if length > 0 else 0.0
+
+    end_time = time.time()
+    total_duration = end_time - start_time
     
-    print_report(precision, recall, f1, avg_f1, total_extracted, total_correct)
+    print_report(precision, recall, f1, avg_f1, total_extracted, total_correct, total_duration)
     
     csv.to_csv("species_extraction_taxonerd_results.csv", index=False)
 

@@ -8,7 +8,7 @@ def verif(names_list) :
     wrong_occurences = []
     
     for name in names_list :
-        print(f"Testing {name}")
+        # print(f"Testing {name}")
         time.sleep(0.1)
         
         try :
@@ -30,8 +30,9 @@ def verif(names_list) :
     
     return correct_occurences, misspelled_occurences, wrong_occurences
 
-def result_csv(csv_path) :
-    csv = pd.read_csv(csv_path)
+def result_csv(df) :
+    # csv = pd.read_csv(csv_path)
+    csv = df
     csv["Accepted Names"] = ""
     csv["Misspelled Names"] = ""
     csv["Unrecognised Names"] = ""
@@ -59,9 +60,10 @@ def result_csv(csv_path) :
     print(f"Accepted species: {accepted_count}")
     print(f"Misspelled species: {misspelled_count}")
     print(f"Unrecognised species: {unrecognised_count}")
-    
-    csv.to_csv("result_gbif_validated.csv", index=False)
+    # csv.to_csv("result_gbif_validated.csv", index=False)
     print("Results saved to result_gbif_validated.csv")
+    return csv
+    
 
 if __name__ == "__main__" :
     try :

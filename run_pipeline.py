@@ -4,12 +4,16 @@ import time
 
 from rulebased import species_extraction_simple, gbif_validation_clean
 from src import evaluator
-from src import gbif_check
+# from src import gbif_check
 from src import taxonerd
 
 from pygbif import species
 
 CSV_PATH = 'data/Data.csv'
+MODELS = {
+    'rulebased': species_extraction_simple.extract_species,
+    'taxonerd': taxonerd.extract_species
+}
 
 def clean_ground_truth(gt_text):
     if str(gt_text).lower() in ['nan', "couldn't find", "pas de nom"]:
@@ -40,15 +44,16 @@ def run_pipeline(model):
     total_tp = 0
     total_fp = 0
     total_fn = 0
+    extract_func = MODELS[model]
+    
+    if not extract_func:
+        raise ValueError(f"Model {model} not known, choose from : {MODELS.keys()}")
+
     for i in range(length) :
         text = f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}"
         
-        # Extraction with choosed model
-        #TODO : choisir fonction avant pour juste avoir à faire extracted = extract()
-        if model == 'rulebased':
-            extracted = set(species_extraction_simple.extract_species(text))
-        elif model == 'taxonerd':
-            extracted = set(taxonerd.extract_species(text)) #TODO
+        # Extraction with chosen model
+        extracted = set(extract_func(text))
 
         # Clean ground truth
         ground_truth = clean_ground_truth(csv.at[i, 'Species'])
@@ -81,7 +86,7 @@ def run_pipeline(model):
     
     print_report(precision, recall, f1, avg_f1, total_extracted, total_correct)
     
-    # csv.to_csv("species_extraction_results.csv", index=False)
+    csv.to_csv("species_extraction_taxonerd_results.csv", index=False)
 
     # GBIF Check
     print("----- Start GBIF Check -----")
@@ -93,7 +98,7 @@ def run_pipeline(model):
     
 if __name__ == "__main__":
     try:
-        run_pipeline(model = 'rulebased')
+        run_pipeline(model = 'taxonerd')
     except Exception as e:
         print(f"Error loading data: {e}")
 

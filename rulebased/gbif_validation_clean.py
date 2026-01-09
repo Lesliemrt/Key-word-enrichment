@@ -60,8 +60,6 @@ def result_csv(df) :
     print(f"Accepted species: {accepted_count}")
     print(f"Misspelled species: {misspelled_count}")
     print(f"Unrecognised species: {unrecognised_count}")
-    # csv.to_csv("result_gbif_validated.csv", index=False)
-    print("Results saved to result_gbif_validated.csv")
     return csv
     
 

@@ -12,13 +12,15 @@ def extract_species(text):
     doc = taxonerd.find_in_text(text)  
     
     if doc is None or len(doc) == 0:
-        return "couldn't find"
+        return []
 
     taxons = [
         t for t in doc['text']
         if isinstance(t, str) and re.match(pattern, t)
     ] 
-    # Supprimer les doublons 
+    # Supress duplicates
     unique_taxons = list(OrderedDict.fromkeys(taxons))
 
-    return sorted(taxons)
+    # Class by alphabetical order
+    unique_taxons_sorted = sorted(unique_taxons)
+    return unique_taxons_sorted

@@ -2,10 +2,8 @@ import pandas as pd
 import re
 import time
 
-from rulebased import species_extraction_simple, gbif_validation_clean
-from src import evaluator
-# from src import gbif_check
-from src import taxonerd
+from rulebased import species_extraction_simple
+from src import evaluator, taxonerd, gbif_validation_clean
 
 from pygbif import species
 

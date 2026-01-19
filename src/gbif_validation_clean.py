@@ -61,6 +61,37 @@ def result_csv(df) :
     print(f"Misspelled species: {misspelled_count}")
     print(f"Unrecognised species: {unrecognised_count}")
     return csv
+
+def result_csv_clean(df) :
+    # csv = pd.read_csv(csv_path)
+    csv = df.copy()
+    length = len(csv)
+    csv["Accepted Names"] = [{} for _ in range(length)]
+    csv["Misspelled Names"] = [{} for _ in range(length)]
+    csv["Unrecognised Names"] = [{} for _ in range(length)]
+    print(f"Processing {length} records")
+    
+    for i in range(length) :
+        extracted_value = csv.at[i, "Extracted"]
+        # Check if the value is not NaN, empty, or "None"
+        if pd.notna(extracted_value) and str(extracted_value).strip() != "" and str(extracted_value) != "None" :
+            strings = [x.strip() for x in str(extracted_value).split(",")]
+            a, b, c = verif(strings)
+            csv.at[i, "Accepted Names"] = a
+            csv.at[i, "Misspelled Names"] = b #TODO : put mispelled names same format as accepted
+            csv.at[i, "Unrecognised Names"] = c
+        
+        if (i + 1) % 10 == 0 :
+            print(f"Progress: {i + 1}/{length}")
+    
+    accepted_count = sum(1 for i in range(length) if csv.at[i, "Accepted Names"] != "")
+    misspelled_count = sum(1 for i in range(length) if csv.at[i, "Misspelled Names"] != "[]")
+    unrecognised_count = sum(1 for i in range(length) if csv.at[i, "Unrecognised Names"] != "[]")
+    
+    print(f"Accepted species: {accepted_count}")
+    print(f"Misspelled species: {misspelled_count}")
+    print(f"Unrecognised species: {unrecognised_count}")
+    return csv
     
 
 if __name__ == "__main__" :

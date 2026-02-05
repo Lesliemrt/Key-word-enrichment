@@ -2,52 +2,76 @@ import pandas as pd
 import re
 import time
 
-from rulebased import species_extraction_simple
-from src import evaluator, taxonerd, gbif_validation_clean
-
+from sklearn.model_selection import train_test_split
+from transformers import AutoTokenizer
 from pygbif import species
 
-CSV_PATH = 'data/Data.csv'
-MODELS = {
-    'rulebased': species_extraction_simple.extract_species,
-    'taxonerd': taxonerd.extract_species
-}
-
-def clean_ground_truth(gt_text):
-    if str(gt_text).lower() in ['nan', "couldn't find", "pas de nom"]:
-        return set()
-    return set([s.strip() for s in str(gt_text).split(',') 
-                if s.strip() and len(s.split()) >= 2])
+from rulebased import species_extraction_simple
+from src import evaluator, taxonerd, gbif_validation_clean
+from src.utils.config import CSV_PATH, EXTENDED_CSV_PATH, MODELS, scibert_model_path, RANDOM_STATE
+from src.utils.utils import clean_ground_truth
+from src import scibert 
 
 def run_pipeline(model):
-    csv = pd.read_csv(CSV_PATH, encoding='utf-8-sig')
+
+    if model not in MODELS:
+        raise ValueError(f"Model {model} not known, choose from : {MODELS}")
+    
+    # ------------- Training ----------------
+
+    if model == 'scibert':
+        print(f'---- Start preprocessing for model {model} ----')
+        df = pd.read_csv(EXTENDED_CSV_PATH, encoding='utf-8-sig')
+        train_df, test_df = train_test_split(df, test_size=0.33, random_state=RANDOM_STATE)
+        train_df = train_df.reset_index(drop=True)
+        test_df = test_df.reset_index(drop=True)
+        train_df_preprocessed = scibert.create_labels(train_df)
+        tokenizer = AutoTokenizer.from_pretrained(scibert_model_path)
+        train_dataset = scibert.SpeciesDataset(
+            words = train_df_preprocessed['Words'], 
+            labels = train_df_preprocessed['Labels'],
+            tokenizer = tokenizer,
+            max_len = 128)
+        print(f'---- Start training for model {model} ----')
+        scibert_model = scibert.SciBertForSpecies(nb_unfreezed=4)
+        scibert_model = scibert.SciBert_Extended(model = scibert_model, train_dataset = train_dataset)
+        scibert_model.train(epochs = 10)
+        # TODO save model
+
+    # ------------- Extraction ---------------
+    if model == 'scibert':
+        csv = test_df.copy()
+    else : 
+        csv = pd.read_csv(CSV_PATH, encoding='utf-8-sig')
     csv["Extracted"] = ""
     csv["Ground Truth"] = ""
     csv["Precision"] = ""
     csv["Recall"] = ""
     csv["F1"] = ""
-
-    # ------------- Extraction ---------------
     
     length = len(csv)
     print(f"Loaded {length} records")
-    print('---- Start extraction ----')
+    print(f'---- Start extraction with model {model}----')
     start_time = time.time()
 
     total_tp = 0
     total_fp = 0
     total_fn = 0
 
-    if model not in MODELS.keys():
-        raise ValueError(f"Model {model} not known, choose from : {MODELS.keys()}")
-
-    extract_func = MODELS[model]
-
     for i in range(length) :
         text = f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}"
+        print("text", text)
         
         # Extraction with chosen model
-        extracted = set(extract_func(text))
+        if model == 'scibert':
+            extracted = set(scibert_model.extract_species(text, tokenizer))
+        elif model == 'rulebased': 
+            extracted = set(species_extraction_simple.extract_species(text))
+        elif model == 'taxonerd' :
+            extracted = set(taxonerd.extract_species(text))
+
+        print("EXTRACTED SPECIES")
+        print(extracted)
 
         # Clean ground truth
         ground_truth = clean_ground_truth(csv.at[i, 'Species'])
@@ -96,12 +120,14 @@ def run_pipeline(model):
 
     csv = gbif_validation_clean.result_csv_clean(csv)
 
+    # Merge accepted names and mispelled names corrected
+    #TODO (to have 1 in precision)
+
     actual_time = pd.Timestamp.now().strftime("%Y-%m-%d_%H-%M-%S")
     csv.to_csv(f"results/result_gbif_validated_{model}_{actual_time}.csv", index=False)
     print(f"Results saved to result_gbif_validated_{model}_{actual_time}.csv")
 
     print("----- Start final evaluation ----")
-    
     extracted = csv['Accepted Names']
     extracted_names = extracted.apply(lambda x: list(x.keys()) if isinstance(x, dict) else [])
     extracted_links = extracted.apply(lambda x: list(x.values()) if isinstance(x, dict) else [])
@@ -119,7 +145,7 @@ def run_pipeline(model):
 
 if __name__ == "__main__":
     try:
-        run_pipeline(model = 'rulebased')
+        run_pipeline(model = 'taxonerd')
     except Exception as e:
         print(f"Error loading data: {e}")
 

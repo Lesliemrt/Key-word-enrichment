@@ -3,5 +3,6 @@ __pycache__/
 
 data/Data.csv
 data/Data_cleaned.csv
+data/Data_extended.csv
 
 results/

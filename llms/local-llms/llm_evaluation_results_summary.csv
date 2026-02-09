@@ -1,0 +1,7 @@
+Model,Perfect_Matches,Partial_Matches,No_Matches,Perfect_Match_Rate,Avg_Precision,Avg_Recall,Avg_Time_Seconds
+codellama:7b,29,4,9,69.0%,0.607,0.605,3.14
+deepseek-coder-v2:16b,26,3,13,61.9%,0.510,0.508,7.24
+deepseek-coder:6.7b,26,3,13,61.9%,0.545,0.515,2.64
+llama3.1:8b,29,4,9,69.0%,0.593,0.605,2.94
+mistral,29,3,10,69.0%,0.580,0.575,2.54
+mistral:7b,29,3,10,69.0%,0.580,0.575,2.55

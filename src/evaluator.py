@@ -10,7 +10,7 @@ import pandas as pd
 #     fn = len(target_set - pred_set)
 #     return tp, fp, fn
 
-def calculate_metrics_global(self, predictions, targets):
+def calculate_metrics_global(predictions, targets):
     """
     Args:
         targets: True target values
@@ -19,11 +19,6 @@ def calculate_metrics_global(self, predictions, targets):
     Returns:
         Dictionary with calculated metrics
     """
-
-    if not predictions and not targets :
-        return 1.0, 1.0, 1.0
-    if not predictions or not targets:
-        return 0.0, 0.0, 0.0
     
     TP_global = 0
     FP_global = 0
@@ -41,7 +36,7 @@ def calculate_metrics_global(self, predictions, targets):
     f1_global = (2 * precision_global * recall_global /
                 (precision_global + recall_global)) if (precision_global + recall_global) > 0 else 0
     
-    return {'precision': precision_global, 'recall' : recall_global, 'f1-score' :f1_global}
+    return precision_global, recall_global, f1_global
 
 def calculate_metrics(extracted, ground_truth) :
     if not extracted and not ground_truth :

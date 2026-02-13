@@ -19,7 +19,7 @@ def run_pipeline(model):
     
     # ------------- Training ----------------
 
-    if model == 'scibert':
+    if 'scibert' in model:
         print(f'---- Start preprocessing for model {model} ----')
         df = pd.read_csv(EXTENDED_CSV_PATH, encoding='utf-8-sig')
         train_df, test_df = train_test_split(df, test_size=0.33, random_state=RANDOM_STATE)
@@ -33,16 +33,16 @@ def run_pipeline(model):
             tokenizer = tokenizer,
             max_len = 128)
         print(f'---- Start training for model {model} ----')
-        scibert_model = scibert.SciBertForSpecies(nb_unfreezed=4)
+        scibert_model = scibert.SciBertForSpecies(nb_unfreezed=6)
         scibert_model = scibert.SciBert_Extended(model = scibert_model, train_dataset = train_dataset)
         scibert_model.train(epochs = 10)
         # TODO save model
 
     # ------------- Extraction ---------------
-    if model == 'scibert':
+    if 'scibert' in model:
         csv = test_df.copy()
     else : 
-        csv = pd.read_csv(CSV_PATH, encoding='utf-8-sig')
+        csv = pd.read_csv(EXTENDED_CSV_PATH, encoding='utf-8-sig')
     csv["Extracted"] = ""
     csv["Ground Truth"] = ""
     csv["Precision"] = ""
@@ -60,8 +60,6 @@ def run_pipeline(model):
 
     for i in range(length) :
         text = f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}"
-        print("text", text)
-        
         # Extraction with chosen model
         if model == 'scibert':
             extracted = set(scibert_model.extract_species(text, tokenizer))
@@ -69,9 +67,14 @@ def run_pipeline(model):
             extracted = set(species_extraction_simple.extract_species(text))
         elif model == 'taxonerd' :
             extracted = set(taxonerd.extract_species(text))
-
-        print("EXTRACTED SPECIES")
-        print(extracted)
+        elif model == 'rulebased-scibert':
+            extracted_rulebased = set(species_extraction_simple.extract_species(text))
+            extracted_scibert = set(scibert_model.extract_species(text, tokenizer))
+            extracted = extracted_rulebased | extracted_scibert
+        elif model == 'rulebased-taxonerd':
+            extracted_rulebased = set(species_extraction_simple.extract_species(text))
+            extracted_taxonerd = set(taxonerd.extract_species(text))
+            extracted = extracted_rulebased | extracted_taxonerd
 
         # Clean ground truth
         ground_truth = clean_ground_truth(csv.at[i, 'Species'])
@@ -117,6 +120,7 @@ def run_pipeline(model):
 
     # ------------- GBIF Check ---------------
     print("----- Start GBIF Check -----")
+    start_time_gbif = time.time()
 
     csv = gbif_validation_clean.result_csv_clean(csv)
 
@@ -132,6 +136,9 @@ def run_pipeline(model):
     extracted_names = extracted.apply(lambda x: list(x.keys()) if isinstance(x, dict) else [])
     extracted_links = extracted.apply(lambda x: list(x.values()) if isinstance(x, dict) else [])
 
+    end_time_gbif = time.time()
+    total_duration_gbif = end_time_gbif - start_time_gbif
+
     print(f"\n--- REPORT AFTER GBIF CHECKED---")
     print("Name extraction : ")
     clean_gt = csv["Ground Truth"].apply(lambda x: [s.strip() for s in str(x).split(',')] if x and str(x).lower() != 'none' else [])
@@ -141,11 +148,12 @@ def run_pipeline(model):
     clean_gt_links = csv["Gbif link"].apply(lambda x: [s.strip() for s in str(x).split(',')] if x and str(x).lower() != 'none' else [])
     precision, recall, f1 = evaluator.calculate_metrics_global(extracted_links.to_list(), clean_gt_links)
     print(f"Precision: {precision:.3f} | Recall: {recall:.3f} | F1-Score: {f1:.3f}")
+    print("GBIF duration :", total_duration_gbif)
 
 
 if __name__ == "__main__":
     try:
-        run_pipeline(model = 'taxonerd')
+        run_pipeline(model = 'rulebased-taxonerd')
     except Exception as e:
         print(f"Error loading data: {e}")
 

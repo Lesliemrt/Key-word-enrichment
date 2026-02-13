@@ -111,6 +111,7 @@ class SciBertForSpecies(nn.Module):
         super(SciBertForSpecies, self).__init__()
         self.bert = AutoModel.from_pretrained(scibert_model_path)
         self.num_labels = num_labels
+        self.nb_unfreezed = nb_unfreezed
         # Input: 768 pour SciBERT base, Output: 3)
         self.classifier = nn.Linear(self.bert.config.hidden_size, num_labels)
     
@@ -118,7 +119,7 @@ class SciBertForSpecies(nn.Module):
             param.requires_grad = False
 
         # Defreeze layers
-        for layer in self.bert.encoder.layer[-nb_unfreezed:]:
+        for layer in self.bert.encoder.layer[-self.nb_unfreezed:]:
             for param in layer.parameters():
                 param.requires_grad = True
 
@@ -203,10 +204,9 @@ class SciBert_Extended():
                     print(" current species", current_entity)
                     current_entity = ""
 
-        print(species_found)
-        print(type(species_found))
+        species_found_clean = [" ".join(name.split()[:2]).capitalize() for name in species_found]
 
-        return species_found
+        return species_found_clean
 
 
 

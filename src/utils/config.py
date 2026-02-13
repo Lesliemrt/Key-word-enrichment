@@ -9,7 +9,9 @@ EXTENDED_CSV_PATH = 'data/Data_extended.csv'
 MODELS = {
     'rulebased',
     'taxonerd',
-    'scibert'
+    'scibert',
+    'rulebased-scibert',
+    'rulebased-taxonerd'
 }
 
 scibert_model_path = "allenai/scibert_scivocab_uncased"

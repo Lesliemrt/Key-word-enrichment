@@ -1,8 +1,6 @@
 __pycache__/
 *.pyc
 
-data/Data.csv
-data/Data_cleaned.csv
-data/Data_extended.csv
+data/
 
 results/

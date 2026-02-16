@@ -7,7 +7,7 @@ from transformers import AutoTokenizer
 from pygbif import species
 
 from rulebased import species_extraction_simple
-from src import evaluator, taxonerd, gbif_validation_clean
+from src import evaluator, taxonerd, gbif_validation_clean , mistral
 from src.utils.config import CSV_PATH, EXTENDED_CSV_PATH, MODELS, scibert_model_path, RANDOM_STATE
 from src.utils.utils import clean_ground_truth
 from src import scibert 
@@ -58,8 +58,15 @@ def run_pipeline(model):
     total_fp = 0
     total_fn = 0
 
+    #Just for mistral, to avoid calling the API in the loop
+    if model == 'mistral':
+        print("---- Start Mistral extraction (batching) ----")
+        texts = [f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}" for i in range(length)]
+        mistral_results = mistral.batch_extract(texts, batch_size=20, sleep_between=0.5)
+
     for i in range(length) :
         text = f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}"
+       
         # Extraction with chosen model
         if model == 'scibert':
             extracted = set(scibert_model.extract_species(text, tokenizer))
@@ -75,6 +82,9 @@ def run_pipeline(model):
             extracted_rulebased = set(species_extraction_simple.extract_species(text))
             extracted_taxonerd = set(taxonerd.extract_species(text))
             extracted = extracted_rulebased | extracted_taxonerd
+        elif model == 'mistral':
+            raw_output = mistral_results[i]
+            extracted = set(raw_output) if raw_output else set()
 
         # Clean ground truth
         ground_truth = clean_ground_truth(csv.at[i, 'Species'])
@@ -153,7 +163,7 @@ def run_pipeline(model):
 
 if __name__ == "__main__":
     try:
-        run_pipeline(model = 'rulebased-taxonerd')
+        run_pipeline(model = 'mistral')
     except Exception as e:
         print(f"Error loading data: {e}")
 

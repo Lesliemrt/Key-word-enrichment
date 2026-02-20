@@ -153,7 +153,7 @@ def run_pipeline(model):
 
 if __name__ == "__main__":
     try:
-        run_pipeline(model = 'rulebased-taxonerd')
+        run_pipeline(model = 'scibert')
     except Exception as e:
         print(f"Error loading data: {e}")
 

@@ -7,7 +7,7 @@ from transformers import AutoTokenizer
 from pygbif import species
 
 from rulebased import species_extraction_simple
-from src import evaluator, taxonerd, gbif_validation_clean, mistral, biodivbert, openmed, llamainstruct
+from src import evaluator, taxonerd, gbif_validation_clean, biodivbert, openmed, llamainstruct
 from src.utils.config import CSV_PATH, EXTENDED_CSV_PATH, MODELS, scibert_model_path, RANDOM_STATE
 from src.utils.utils import clean_ground_truth
 from src import scibert 
@@ -99,10 +99,10 @@ def run_pipeline(model):
     total_fn = 0
 
     
-    if model == 'mistral':
-        print("---- Start Mistral extraction (batching) ----")
-        texts = [f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}" for i in range(length)]
-        mistral_results = mistral.batch_extract(texts, batch_size=20, sleep_between=0.5)
+    # if model == 'mistral':
+    #     print("---- Start Mistral extraction (batching) ----")
+    #     texts = [f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}" for i in range(length)]
+    #     mistral_results = mistral.batch_extract(texts, batch_size=20, sleep_between=0.5)
 
     for i in range(length) :
         text = f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}"
@@ -154,9 +154,9 @@ def run_pipeline(model):
             extracted_rulebased = set(species_extraction_simple.extract_species(text))
             extracted_llamainstruct = set(llamainstruct.extract_species(text))
             extracted = extracted_rulebased | extracted_llamainstruct
-        elif model == 'mistral':
-            raw_output = mistral_results[i]
-            extracted = set(raw_output) if raw_output else set()
+        # elif model == 'mistral':
+        #     raw_output = mistral_results[i]
+        #     extracted = set(raw_output) if raw_output else set()
 
         
         ground_truth = clean_ground_truth(csv.at[i, 'Species'])
@@ -175,7 +175,7 @@ def run_pipeline(model):
         csv.at[i, "Recall"] = recall
         csv.at[i, "F1"] = f1
 
-
+    results = {}
    
     total_correct = total_tp
     total_extracted = total_tp + total_fp
@@ -197,6 +197,7 @@ def run_pipeline(model):
     print(f"False positives: {total_extracted - total_correct}")
     print(f"Duration : ", total_duration)
     
+    results["Before GBIF Check"] = {'Precision' : precision, 'Recall' : recall, 'F1-score' : f1, 'Duration' : total_duration}
     
     import os
     results_dir = f"results/{model}"
@@ -231,16 +232,29 @@ def run_pipeline(model):
     clean_gt = csv["Ground Truth"].apply(lambda x: [s.strip() for s in str(x).split(',')] if x and str(x).lower() != 'none' else [])
     precision, recall, f1 = evaluator.calculate_metrics_global(extracted_names.to_list(), clean_gt)
     print(f"Precision: {precision:.3f} | Recall: {recall:.3f} | F1-Score: {f1:.3f}")
+    results["After GBIF Check - Name extraction"] = {'Precision' : precision, 'Recall' : recall, 'F1-score' : f1, 'Duration' : total_duration_gbif}
     print("Links extraction : ")
     clean_gt_links = csv["Gbif link"].apply(lambda x: [s.strip() for s in str(x).split(',')] if x and str(x).lower() != 'none' else [])
     precision, recall, f1 = evaluator.calculate_metrics_global(extracted_links.to_list(), clean_gt_links)
     print(f"Precision: {precision:.3f} | Recall: {recall:.3f} | F1-Score: {f1:.3f}")
     print("GBIF duration :", total_duration_gbif)
 
+    results["After GBIF Check - Links"] = {'Precision' : precision, 'Recall' : recall, 'F1-score' : f1, 'Duration' : total_duration_gbif}
+    df_results = pd.DataFrame(results)
+
+    file_path = f"results/RESULTS.xlsx"
+    if os.path.exists(file_path):
+        with pd.ExcelWriter(file_path, engine="openpyxl", mode='a', if_sheet_exists="replace") as writer:
+            df_results.to_excel(writer, sheet_name=f"{model}")
+    else:
+        with pd.ExcelWriter(file_path, engine="openpyxl", mode='w') as writer:
+            df_results.to_excel(writer, sheet_name=f"{model}")
+
+
 
 if __name__ == "__main__":
     try:
-        run_pipeline(model = 'rulebased-llamainstruct')
+        run_pipeline(model = 'rulebased-taxonerd')
     except Exception as e:
         print(f"Error loading data: {e}")
 

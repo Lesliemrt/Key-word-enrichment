@@ -1,6 +1,9 @@
 import pandas as pd
 import re
 import time
+import torch
+import numpy as np
+import random
 
 from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer
@@ -11,6 +14,14 @@ from src import evaluator, taxonerd, gbif_validation_clean, biodivbert, openmed,
 from src.utils.config import CSV_PATH, EXTENDED_CSV_PATH, MODELS, scibert_model_path, RANDOM_STATE
 from src.utils.utils import clean_ground_truth
 from src import scibert 
+
+random.seed(RANDOM_STATE)
+np.random.seed(RANDOM_STATE)
+torch.manual_seed(RANDOM_STATE)
+torch.cuda.manual_seed_all(RANDOM_STATE)
+# Pour garantir le déterminisme sur GPU (attention, peut ralentir l'entraînement)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 def run_pipeline(model):
 
@@ -35,13 +46,13 @@ def run_pipeline(model):
         print(f'---- Start training for model {model} ----')
         scibert_model = scibert.SciBertForSpecies(nb_unfreezed=6)
         scibert_model = scibert.SciBert_Extended(model = scibert_model, train_dataset = train_dataset)
-        scibert_model.train(epochs = 10)
+        scibert_model.train(epochs = 30)
         
 
     if 'biodivbert' in model:
         print(f'---- Start training BiodivBERT ----')
         df = pd.read_csv(EXTENDED_CSV_PATH, encoding='utf-8-sig')
-        train_df, test_df = train_test_split(df, test_size=0.30, random_state=RANDOM_STATE)
+        train_df, test_df = train_test_split(df, test_size=0.33, random_state=RANDOM_STATE)
         train_df = train_df.reset_index(drop=True)
         test_df = test_df.reset_index(drop=True)
         
@@ -254,7 +265,7 @@ def run_pipeline(model):
 
 if __name__ == "__main__":
     try:
-        run_pipeline(model = 'rulebased-taxonerd')
+        run_pipeline(model = 'scibert')
     except Exception as e:
         print(f"Error loading data: {e}")
 

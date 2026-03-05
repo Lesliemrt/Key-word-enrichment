@@ -73,7 +73,7 @@ To run the pipeline, the following command can be used :
 python run_pipeline.py --model <model_name>
 ```
 
-The model can be the following option : 
+The model can be chosed from the following options : 
     'rulebased',
     'taxonerd',
     'scibert',

@@ -4,6 +4,7 @@ import time
 import torch
 import numpy as np
 import random
+import argparse
 
 from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer
@@ -23,15 +24,15 @@ torch.cuda.manual_seed_all(RANDOM_STATE)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-def run_pipeline(model):
+def run_pipeline(args):
 
-    if model not in MODELS:
-        raise ValueError(f"Model {model} not known, choose from : {MODELS}")
+    if args.model not in MODELS:
+        raise ValueError(f"Model {args.model} not known, choose from : {MODELS}")
     
    
 
-    if 'scibert' in model:
-        print(f'---- Start preprocessing for model {model} ----')
+    if 'scibert' in args.model:
+        print(f'---- Start preprocessing for model {args.model} ----')
         df = pd.read_csv(EXTENDED_CSV_PATH, encoding='utf-8-sig')
         train_df, test_df = train_test_split(df, test_size=0.33, random_state=RANDOM_STATE)
         train_df = train_df.reset_index(drop=True)
@@ -43,13 +44,13 @@ def run_pipeline(model):
             labels = train_df_preprocessed['Labels'],
             tokenizer = tokenizer,
             max_len = 128)
-        print(f'---- Start training for model {model} ----')
+        print(f'---- Start training for model {args.model} ----')
         scibert_model = scibert.SciBertForSpecies(nb_unfreezed=6)
         scibert_model = scibert.SciBert_Extended(model = scibert_model, train_dataset = train_dataset)
         scibert_model.train(epochs = 30)
         
 
-    if 'biodivbert' in model:
+    if 'biodivbert' in args.model:
         print(f'---- Start training BiodivBERT ----')
         df = pd.read_csv(EXTENDED_CSV_PATH, encoding='utf-8-sig')
         train_df, test_df = train_test_split(df, test_size=0.33, random_state=RANDOM_STATE)
@@ -57,7 +58,7 @@ def run_pipeline(model):
         test_df = test_df.reset_index(drop=True)
         
 
-        if model == 'rulebased-biodivbert':
+        if args.model == 'rulebased-biodivbert':
             checkpoint_dir = "checkpoints_rulebased_biodivbert"
         else:
             checkpoint_dir = "checkpoints_biodivbert_split"
@@ -67,7 +68,7 @@ def run_pipeline(model):
         )
         print(f"Using best BiodivBERT model from epoch {best_epoch}")
 
-    if 'openmed' in model:
+    if 'openmed' in args.model:
         print(f'---- Start training OpenMed ----')
         df = pd.read_csv(EXTENDED_CSV_PATH, encoding='utf-8-sig')
         train_df, test_df = train_test_split(df, test_size=0.30, random_state=RANDOM_STATE)
@@ -75,7 +76,7 @@ def run_pipeline(model):
         test_df = test_df.reset_index(drop=True)
         
 
-        if model == 'rulebased-openmed':
+        if args.model == 'rulebased-openmed':
             checkpoint_dir = "checkpoints_rulebased_openmed"
         else:
             checkpoint_dir = "checkpoints_openmed_split"
@@ -86,11 +87,11 @@ def run_pipeline(model):
         print(f"Using best OpenMed model from epoch {best_epoch}")
 
 
-    if 'scibert' in model:
+    if 'scibert' in args.model:
         csv = test_df.copy()
-    elif 'biodivbert' in model:
+    elif 'biodivbert' in args.model:
         csv = test_df.copy()
-    elif 'openmed' in model:
+    elif 'openmed' in args.model:
         csv = test_df.copy()
     else:
         csv = pd.read_csv(EXTENDED_CSV_PATH, encoding='utf-8-sig')
@@ -102,7 +103,7 @@ def run_pipeline(model):
     
     length = len(csv)
     print(f"Loaded {length} records")
-    print(f'---- Start extraction with model {model}----')
+    print(f'---- Start extraction with model {args.model}----')
     start_time = time.time()
 
     total_tp = 0
@@ -119,49 +120,49 @@ def run_pipeline(model):
         text = f"{csv.at[i, 'Title']} {csv.at[i, 'Description']}"
        
         
-        if model == 'scibert':
+        if args.model == 'scibert':
             extracted = set(scibert_model.extract_species(text, tokenizer))
-        elif model == 'rulebased': 
+        elif args.model == 'rulebased': 
             extracted = set(species_extraction_simple.extract_species(text))
-        elif model == 'taxonerd' :
+        elif args.model == 'taxonerd' :
             extracted = set(taxonerd.extract_species(text))
-        elif model == 'biodivbert':
+        elif args.model == 'biodivbert':
             
             if 'biodivbert_model' in locals():
                 extracted = set(biodivbert.extract_from_model(text, biodivbert_model, biodivbert_tokenizer))
             else:
                 extracted = set(biodivbert.extract_species(text))
-        elif model == 'openmed':
+        elif args.model == 'openmed':
             
             if 'openmed_model' in locals():
                 extracted = set(openmed.extract_from_model(text, openmed_model, openmed_tokenizer))
             else:
                 extracted = set(openmed.extract_species(text))
-        elif model == 'llamainstruct':
+        elif args.model == 'llamainstruct':
             extracted = set(llamainstruct.extract_species(text))
-        elif model == 'rulebased-scibert':
+        elif args.model == 'rulebased-scibert':
             extracted_rulebased = set(species_extraction_simple.extract_species(text))
             extracted_scibert = set(scibert_model.extract_species(text, tokenizer))
             extracted = extracted_rulebased | extracted_scibert
-        elif model == 'rulebased-taxonerd':
+        elif args.model == 'rulebased-taxonerd':
             extracted_rulebased = set(species_extraction_simple.extract_species(text))
             extracted_taxonerd = set(taxonerd.extract_species(text))
             extracted = extracted_rulebased | extracted_taxonerd
-        elif model == 'rulebased-biodivbert':
+        elif args.model == 'rulebased-biodivbert':
             extracted_rulebased = set(species_extraction_simple.extract_species(text))
             if 'biodivbert_model' in locals():
                 extracted_biodivbert = set(biodivbert.extract_from_model(text, biodivbert_model, biodivbert_tokenizer))
             else:
                 extracted_biodivbert = set(biodivbert.extract_species(text))
             extracted = extracted_rulebased | extracted_biodivbert
-        elif model == 'rulebased-openmed':
+        elif args.model == 'rulebased-openmed':
             extracted_rulebased = set(species_extraction_simple.extract_species(text))
             if 'openmed_model' in locals():
                 extracted_openmed = set(openmed.extract_from_model(text, openmed_model, openmed_tokenizer))
             else:
                 extracted_openmed = set(openmed.extract_species(text))
             extracted = extracted_rulebased | extracted_openmed
-        elif model == 'rulebased-llamainstruct':
+        elif args.model == 'rulebased-llamainstruct':
             extracted_rulebased = set(species_extraction_simple.extract_species(text))
             extracted_llamainstruct = set(llamainstruct.extract_species(text))
             extracted = extracted_rulebased | extracted_llamainstruct
@@ -211,11 +212,11 @@ def run_pipeline(model):
     results["Before GBIF Check"] = {'Precision' : precision, 'Recall' : recall, 'F1-score' : f1, 'Duration' : total_duration}
     
     import os
-    results_dir = f"results/{model}"
+    results_dir = f"results/{args.model}"
     os.makedirs(results_dir, exist_ok=True)
     
     actual_time = pd.Timestamp.now().strftime("%Y-%m-%d_%H-%M-%S")
-    csv.to_csv(f"{results_dir}/species_extraction_{model}_results_{actual_time}.csv", index=False)
+    csv.to_csv(f"{results_dir}/species_extraction_{args.model}_results_{actual_time}.csv", index=False)
 
    
     print(" Start GBIF Check ")
@@ -227,8 +228,8 @@ def run_pipeline(model):
 
 
     actual_time = pd.Timestamp.now().strftime("%Y-%m-%d_%H-%M-%S")
-    csv.to_csv(f"{results_dir}/result_gbif_validated_{model}_{actual_time}.csv", index=False)
-    print(f"Results saved to {results_dir}/result_gbif_validated_{model}_{actual_time}.csv")
+    csv.to_csv(f"{results_dir}/result_gbif_validated_{args.model}_{actual_time}.csv", index=False)
+    print(f"Results saved to {results_dir}/result_gbif_validated_{args.model}_{actual_time}.csv")
 
    
     extracted = csv['Accepted Names']
@@ -256,18 +257,57 @@ def run_pipeline(model):
     file_path = f"results/RESULTS.xlsx"
     if os.path.exists(file_path):
         with pd.ExcelWriter(file_path, engine="openpyxl", mode='a', if_sheet_exists="replace") as writer:
-            df_results.to_excel(writer, sheet_name=f"{model}")
+            df_results.to_excel(writer, sheet_name=f"{args.model}")
     else:
         with pd.ExcelWriter(file_path, engine="openpyxl", mode='w') as writer:
-            df_results.to_excel(writer, sheet_name=f"{model}")
+            df_results.to_excel(writer, sheet_name=f"{args.model}")
 
+def parse_arguments():
+    """Parse command line arguments."""
+
+    parser = argparse.ArgumentParser(
+        description="Pipeline",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="rulebased",
+        choices=MODELS,
+        help="Model type to train/test",
+    )
+
+    parser.add_argument(
+        "--data",
+        type=str,
+        default="Data_extended.csv",
+        choices=["Data_extended.csv", "Data"],
+        help="Data to apply the model to",
+    )
+
+    return parser.parse_args()
+
+def main():
+    """Main entry point."""
+
+    try:
+        args = parse_arguments()
+        run_pipeline(args)
+
+        return 0
+
+    except KeyboardInterrupt:
+        print("\n Pipeline interrupted by user")
+        return 1
+    except Exception as e:
+        print(f"\n Pipeline failed: {e}")
+        return 1
 
 
 if __name__ == "__main__":
-    try:
-        run_pipeline(model = 'rulebased-biodivbert')
-    except Exception as e:
-        print(f"Error loading data: {e}")
+    exit(main())
+
 
 
 

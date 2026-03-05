@@ -11,7 +11,7 @@ from pygbif import species
 
 from rulebased import species_extraction_simple
 from src import evaluator, taxonerd, gbif_validation_clean, biodivbert, openmed, llamainstruct
-from src.utils.config import CSV_PATH, EXTENDED_CSV_PATH, MODELS, scibert_model_path, RANDOM_STATE
+from src.utils.config import CSV_PATH, EXTENDED_CSV_PATH, MODELS, scibert_model_path, openmed_model_path, biodivbert_model_path, llama_model_path, RANDOM_STATE
 from src.utils.utils import clean_ground_truth
 from src import scibert 
 
@@ -268,5 +268,6 @@ if __name__ == "__main__":
         run_pipeline(model = 'rulebased-biodivbert')
     except Exception as e:
         print(f"Error loading data: {e}")
+
 
 

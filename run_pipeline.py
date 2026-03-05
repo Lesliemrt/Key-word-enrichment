@@ -15,11 +15,11 @@ from src.utils.config import CSV_PATH, EXTENDED_CSV_PATH, MODELS, scibert_model_
 from src.utils.utils import clean_ground_truth
 from src import scibert 
 
+# For reproductability
 random.seed(RANDOM_STATE)
 np.random.seed(RANDOM_STATE)
 torch.manual_seed(RANDOM_STATE)
 torch.cuda.manual_seed_all(RANDOM_STATE)
-# Pour garantir le déterminisme sur GPU (attention, peut ralentir l'entraînement)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
@@ -265,7 +265,7 @@ def run_pipeline(model):
 
 if __name__ == "__main__":
     try:
-        run_pipeline(model = 'scibert')
+        run_pipeline(model = 'rulebased-biodivbert')
     except Exception as e:
         print(f"Error loading data: {e}")
 

@@ -7,7 +7,6 @@ RANDOM_STATE = 42
 API_KEY="1nCRukeZXLfBrLYxFpnoVhSYcIXLvTnq"
 HF_TOKEN = "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"
 
-CSV_PATH = 'data/Data_cleaned.csv'
 EXTENDED_CSV_PATH = 'data/Data_extended.csv'
 MODELS = {
     'rulebased',

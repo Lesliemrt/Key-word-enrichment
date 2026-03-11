@@ -47,7 +47,7 @@ on a given species.
 │   ├── scibert.py
 │   └── taxonerd.py
 ├── .gitignore
-├── environment.yml                    # Configuration de l'environnement Conda
+├── environment.yml
 ├── llamaonly.ipynb
 ├── README.md
 ├── result_gbif_validated.csv

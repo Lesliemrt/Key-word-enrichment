@@ -1,7 +1,7 @@
 __pycache__/
 *.pyc
 
-results/
+results/*
 !results/RESULTS.xlsx
 
 data/
